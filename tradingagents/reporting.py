@@ -9,12 +9,38 @@ run produces the same on-disk report tree a CLI run does.
 from datetime import datetime
 from pathlib import Path
 
+KOREAN_REPORT_LABELS = {
+    "Trading Analysis Report": "종목 분석 보고서",
+    "I. Analyst Team Reports": "I. 분석팀 보고서",
+    "II. Research Team Decision": "II. 연구팀 판단",
+    "III. Trading Team Plan": "III. 매매 계획",
+    "IV. Risk Management Team Decision": "IV. 위험관리팀 판단",
+    "V. Portfolio Manager Decision": "V. 포트폴리오 관리자 최종 판단",
+    "Market Analyst": "시장·기술 분석가",
+    "Sentiment Analyst": "시장심리 분석가",
+    "News Analyst": "뉴스 분석가",
+    "Fundamentals Analyst": "재무·기업가치 분석가",
+    "Bull Researcher": "상승론 연구원",
+    "Bear Researcher": "하락론 연구원",
+    "Research Manager": "연구 관리자",
+    "Trader": "트레이더",
+    "Aggressive Analyst": "공격적 위험 분석가",
+    "Conservative Analyst": "보수적 위험 분석가",
+    "Neutral Analyst": "중립적 위험 분석가",
+    "Portfolio Manager": "포트폴리오 관리자",
+}
 
-def write_report_tree(final_state: dict, ticker: str, save_path) -> Path:
+
+def write_report_tree(final_state: dict, ticker: str, save_path, *, output_language="English") -> Path:
     """Save a completed run's reports to ``save_path``; return the complete-report path."""
     save_path = Path(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
     sections = []
+
+    def label(text):
+        if str(output_language).lower() in {"korean", "ko", "한국어"}:
+            return f"{text} ({KOREAN_REPORT_LABELS[text]})"
+        return text
 
     # 1. Analysts
     analysts_dir = save_path / "1_analysts"
@@ -36,8 +62,8 @@ def write_report_tree(final_state: dict, ticker: str, save_path) -> Path:
         (analysts_dir / "fundamentals.md").write_text(final_state["fundamentals_report"], encoding="utf-8")
         analyst_parts.append(("Fundamentals Analyst", final_state["fundamentals_report"]))
     if analyst_parts:
-        content = "\n\n".join(f"### {name}\n{text}" for name, text in analyst_parts)
-        sections.append(f"## I. Analyst Team Reports\n\n{content}")
+        content = "\n\n".join(f"### {label(name)}\n{text}" for name, text in analyst_parts)
+        sections.append(f"## {label('I. Analyst Team Reports')}\n\n{content}")
 
     # 2. Research
     if final_state.get("investment_debate_state"):
@@ -57,15 +83,15 @@ def write_report_tree(final_state: dict, ticker: str, save_path) -> Path:
             (research_dir / "manager.md").write_text(debate["judge_decision"], encoding="utf-8")
             research_parts.append(("Research Manager", debate["judge_decision"]))
         if research_parts:
-            content = "\n\n".join(f"### {name}\n{text}" for name, text in research_parts)
-            sections.append(f"## II. Research Team Decision\n\n{content}")
+            content = "\n\n".join(f"### {label(name)}\n{text}" for name, text in research_parts)
+            sections.append(f"## {label('II. Research Team Decision')}\n\n{content}")
 
     # 3. Trading
     if final_state.get("trader_investment_plan"):
         trading_dir = save_path / "3_trading"
         trading_dir.mkdir(exist_ok=True)
         (trading_dir / "trader.md").write_text(final_state["trader_investment_plan"], encoding="utf-8")
-        sections.append(f"## III. Trading Team Plan\n\n### Trader\n{final_state['trader_investment_plan']}")
+        sections.append(f"## {label('III. Trading Team Plan')}\n\n### {label('Trader')}\n{final_state['trader_investment_plan']}")
 
     # 4. Risk Management
     if final_state.get("risk_debate_state"):
@@ -85,17 +111,17 @@ def write_report_tree(final_state: dict, ticker: str, save_path) -> Path:
             (risk_dir / "neutral.md").write_text(risk["neutral_history"], encoding="utf-8")
             risk_parts.append(("Neutral Analyst", risk["neutral_history"]))
         if risk_parts:
-            content = "\n\n".join(f"### {name}\n{text}" for name, text in risk_parts)
-            sections.append(f"## IV. Risk Management Team Decision\n\n{content}")
+            content = "\n\n".join(f"### {label(name)}\n{text}" for name, text in risk_parts)
+            sections.append(f"## {label('IV. Risk Management Team Decision')}\n\n{content}")
 
         # 5. Portfolio Manager
         if risk.get("judge_decision"):
             portfolio_dir = save_path / "5_portfolio"
             portfolio_dir.mkdir(exist_ok=True)
             (portfolio_dir / "decision.md").write_text(risk["judge_decision"], encoding="utf-8")
-            sections.append(f"## V. Portfolio Manager Decision\n\n### Portfolio Manager\n{risk['judge_decision']}")
+            sections.append(f"## {label('V. Portfolio Manager Decision')}\n\n### {label('Portfolio Manager')}\n{risk['judge_decision']}")
 
     # Write consolidated report
-    header = f"# Trading Analysis Report: {ticker}\n\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    header = f"# {label('Trading Analysis Report')}: {ticker}\n\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
     (save_path / "complete_report.md").write_text(header + "\n\n".join(sections), encoding="utf-8")
     return save_path / "complete_report.md"

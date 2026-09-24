@@ -84,8 +84,8 @@ def backtest(
 ):
     """upstream 백테스트·판단 로그·스코어링을 사용합니다."""
     config = _config(provider, model)
-    from tradingagents.agents.utils.memory import TradingMemoryLog
     from tradingagents.backtest import iter_grid, run_backtest, summarize
+    from tradingagents.decision_log import TradingMemoryLog
 
     try:
         symbols = [_symbol(t.strip()) for t in tickers.split(",") if t.strip()]

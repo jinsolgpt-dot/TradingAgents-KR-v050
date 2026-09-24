@@ -9,7 +9,7 @@ from stockstats import wrap
 from .errors import NoMarketDataError, VendorRateLimitError
 from .kis_auth import KST, get_kis_auth_manager
 from .korea_ticker import get_stock_code
-from .stockstats_utils import _assert_ohlcv_not_stale
+from .vendors.yahoo.ohlcv import _assert_ohlcv_not_stale
 
 
 class KISVendorError(RuntimeError):

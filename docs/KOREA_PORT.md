@@ -2,7 +2,7 @@
 
 ## 기준과 구조
 
-- upstream `refs/tags/v0.5.0^{commit}`: `2d17df8da1536c121e4d7395ac5a5dcec9e96d6f`.
+- upstream `refs/tags/v0.5.1^{commit}`: `35543d0248bf89fcb92b17a15858ad0c0e940687`.
 - KR 참고 commit: `ce0aa456419800c29325516f984fc55a9a8f14dd`.
 - GitHub 정식 fork: <https://github.com/jinsolgpt-dot/TradingAgents-KR-v050>.
 - `upstream`은 TauricResearch/TradingAgents, `origin`은 위 개인 fork입니다.
@@ -18,16 +18,16 @@ Codex는 기존 LLM factory의 추가 provider로 연결했습니다. 원본 그
 
 | 원본 접점 | 추가 이유 |
 |---|---|
-| `dataflows/interface.py` | 한국 vendor 등록, 기존 fallback/error 정책 재사용 |
-| `dataflows/market_data_validator.py` | KIS 가격과 검증 snapshot의 출처·원주가 기준 일치 |
-| `dataflows/symbol_utils.py`, `utils.py` | opt-in 한국 종목 정규화·한국 날짜 |
+| `dataflows/router.py` | 한국 vendor 등록, 기존 fallback/error 정책 재사용 |
+| `dataflows/vendors/yahoo/snapshot.py` | KIS 가격과 검증 snapshot의 출처·원주가 기준 일치 |
+| `dataflows/symbols.py`, `date_window.py` | opt-in 한국 종목 정규화·한국 날짜 |
 | `default_config.py` | 환경변수 opt-in |
 | `graph/trading_graph.py` | Codex 옵션 전달·한국 종목 컨텍스트·공통 오늘 기준 |
-| `llm_clients/factory.py`, `validators.py`, `model_catalog.py`, `cli/utils.py` | provider 선택 |
-| `agents/utils/macro_data_tools.py` | ECOS alias 설명 |
+| `llm_clients/factory.py`, `validators.py`, `model_catalog.py`, `cli/prompts.py` | provider 선택 |
+| `agents/tools.py` | ECOS alias 설명 |
 | `pyproject.toml` | `tradingagents-kr` 추가 진입점 |
 
-## 검증
+## 최초 v0.5.0 이식 검증
 
 검증 명령:
 
@@ -86,12 +86,28 @@ python -m ruff check .
 백테스트 사후 평가 데이터는 원본의 Yahoo 경로를 유지합니다. 분석 가격은 KIS 원주가이므로
 기업행위가 있는 기간의 성과 해석에 주의해야 합니다.
 KIS를 primary로 선택한 검증 snapshot은 KIS 오류를 드러내며 Yahoo로 조용히 대체하지 않습니다.
-글로벌 dataflows 설정은 upstream처럼 프로세스 공유입니다. 서로 다른 시장/설정의 그래프를
-같은 프로세스에서 동시에 실행하는 기능은 추가하지 않았습니다.
+v0.5.1의 실행별 ContextVar 설정 격리를 유지합니다. 한국 공급자와 날짜 처리도 실행별
+설정을 조회하며, 다른 그래프의 공급자 설정을 덮어쓰는 방식에 의존하지 않습니다.
+
+## v0.5.1 업데이트 — UP5K8M2R7A
+
+2026-09-25 정식 태그 `35543d0248bf89fcb92b17a15858ad0c0e940687`을 merge했습니다.
+저장소와 브랜치 이름의 `v050`은 기존 이름이며 설치 패키지 버전은 `0.5.1`입니다.
+KIS/DART/ECOS/Naver, 종목 정규화, KST 날짜 처리, Codex 옵션 전달을 새 모듈 경로에 연결했습니다.
+상대경로와 옛 private 메서드를 사용하는 한국판 테스트를 새 공개 접점에 맞췄습니다.
+원본이 같은 시간대 fixture 문제를 수정했으므로 중복 보정 대신 원본 `_stamp`를 사용합니다.
+
+한국어 보고서에는 영문 역할·팀 제목 옆에 한글을 병기합니다. 영어 출력은 유지합니다.
+기존 크래프톤 보고서는 내용을 다시 분석하지 않고 제목만 재생성했으며 원본을 로컬에 보관했습니다.
+
+검증: 전체 pytest **1057 passed, 5 skipped, 92 subtests passed** (22 warnings), Ruff 통과, 보고서 한글/영문 분리·본문 보존 검사, editable 설치 버전 확인.
+실제 Codex 구조화 응답과 Naver Cloud 뉴스 조회가 새 버전에서 성공했습니다.
+이번 업데이트에서 전체 종목 분석과 모든 외부 API를 다시 실행하지는 않았습니다.
+`.env`, `TradingAgents.env`, 생성 보고서는 Git에서 제외하며 푸시 전 실제 키의 staged diff 포함 여부를 검사합니다.
 
 ## 출처
 
-- [upstream 기준](https://github.com/TauricResearch/TradingAgents/tree/2d17df8da1536c121e4d7395ac5a5dcec9e96d6f)
+- [upstream 기준](https://github.com/TauricResearch/TradingAgents/tree/35543d0248bf89fcb92b17a15858ad0c0e940687)
 - [KR 원본](https://github.com/malda231125/TradingAgents-KR/tree/ce0aa456419800c29325516f984fc55a9a8f14dd)
 - [Codex 비대화형 실행](https://learn.chatgpt.com/docs/non-interactive-mode)
 - [KIS 공식 API 예제](https://github.com/koreainvestment/open-trading-api)

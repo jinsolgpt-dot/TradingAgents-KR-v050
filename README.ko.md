@@ -1,10 +1,10 @@
-# TradingAgents KR — upstream v0.5.0 기반
+# TradingAgents KR — upstream v0.5.1 기반
 
-TauricResearch/TradingAgents **v0.5.0 정식 태그**에 한국시장 데이터와 Codex CLI를 추가한 포크입니다.
+TauricResearch/TradingAgents **v0.5.1 정식 태그**에 한국시장 데이터와 Codex CLI를 추가한 포크입니다.
 원본의 Agent/Graph, point-in-time 날짜 주입, 백테스트, 포트폴리오 컨텍스트,
 판단 로그·스코어링·보고서·체크포인트를 유지합니다.
 
-- [원본 v0.5.0](https://github.com/TauricResearch/TradingAgents/tree/v0.5.0)
+- [원본 v0.5.1](https://github.com/TauricResearch/TradingAgents/tree/v0.5.1)
 - [한국 기능 참고 프로젝트](https://github.com/malda231125/TradingAgents-KR/blob/ce0aa456419800c29325516f984fc55a9a8f14dd/README.ko.md)
 - [upstream 유지보수·검증 기록](docs/KOREA_PORT.md)
 - 원본 영어 설명은 [README.md](README.md)에 유지했습니다.
@@ -70,8 +70,9 @@ notepad .\reports\samsung-first\complete_report.md
 | `4_risk/` | 공격적·보수적·중립적 관점의 위험 검토 |
 | `5_portfolio/decision.md` | 최종 포트폴리오 담당자의 판단 |
 
-각 파일은 해당 결과가 생성된 경우에만 저장됩니다. 최종 판단을 먼저 읽고,
-그 판단에 사용한 자료의 날짜·출처와 `DATA_UNAVAILABLE` 표시를 확인하세요.
+각 파일은 해당 결과가 생성된 경우에만 저장됩니다.
+한국어 출력에서는 `Market Analyst (시장·기술 분석가)`처럼 역할·팀 제목을 한글과 병기합니다.
+최종 판단을 먼저 읽고, 그 판단에 사용한 자료의 날짜·출처와 `DATA_UNAVAILABLE` 표시를 확인하세요.
 자료가 없다는 표시를 해당 기업에 문제가 없다는 뜻으로 해석하면 안 됩니다.
 `--output`은 파일명이 아닌 **폴더 경로**입니다. 같은 경로를 재사용하면 기존 보고서를
 덮어쓰므로 분석을 보관하려면 실행마다 다른 폴더명을 사용하세요.

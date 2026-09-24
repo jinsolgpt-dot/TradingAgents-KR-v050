@@ -47,7 +47,7 @@ def normalize_portfolio(portfolio):
 
 
 def instrument_context(ticker: str, curr_date: str | None) -> str:
-    from tradingagents.agents.utils.agent_utils import build_instrument_context
+    from tradingagents.agents.context import build_instrument_context
     from tradingagents.dataflows.korea_ticker import get_instrument_profile
 
     profile = get_instrument_profile(ticker)

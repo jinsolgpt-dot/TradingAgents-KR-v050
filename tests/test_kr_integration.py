@@ -11,13 +11,15 @@ from langgraph.prebuilt import ToolNode
 from typer.testing import CliRunner
 
 from cli.korea import app
-from tradingagents.agents.utils.agent_utils import get_balance_sheet, get_global_news, get_news
-from tradingagents.dataflows import interface, korean_news
+from tradingagents.agents.tools import get_balance_sheet, get_global_news, get_news
+from tradingagents.dataflows import korean_news, router as interface
 from tradingagents.dataflows.config import set_config
 from tradingagents.dataflows.errors import VendorNotConfiguredError
-from tradingagents.dataflows.symbol_utils import normalize_symbol
+from tradingagents.dataflows.symbols import normalize_symbol
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.graph.settlement import resolve_benchmark
 from tradingagents.graph.trading_graph import TradingAgentsGraph
+from tradingagents.llm_clients.factory import build_llm_kwargs
 from tradingagents.markets.korea import get_korea_config, normalize_portfolio
 from tradingagents.portfolio import PortfolioContext, Position
 
@@ -46,8 +48,8 @@ def test_korean_canonical_symbols_and_benchmarks_are_consistent():
     assert normalize_symbol("AAPL") == "AAPL"
     graph = TradingAgentsGraph.__new__(TradingAgentsGraph)
     graph.config = config
-    assert graph._resolve_benchmark("삼성전자") == "^KS11"
-    assert graph._resolve_benchmark("240810.KQ") == "^KQ11"
+    assert resolve_benchmark("삼성전자", config) == "^KS11"
+    assert resolve_benchmark("240810.KQ", config) == "^KQ11"
     assert "KRW" in graph.resolve_instrument_context("005930.KS", curr_date="2026-01-05")
 
 
@@ -136,13 +138,14 @@ def test_codex_options_reach_factory():
     graph = TradingAgentsGraph.__new__(TradingAgentsGraph)
     graph.config = get_korea_config({"llm_provider": "codex", "codex_timeout": 30,
                                      "openai_reasoning_effort": "low"})
-    assert graph._get_provider_kwargs() == {"codex_timeout": 30, "reasoning_effort": "low"}
+    assert build_llm_kwargs(graph.config) == {"codex_timeout": 30, "reasoning_effort": "low"}
 
 
 def test_verified_snapshot_uses_kis_and_suppresses_short_history(monkeypatch):
     import pandas as pd
 
-    from tradingagents.dataflows import kis_vendor, market_data_validator
+    from tradingagents.dataflows import kis_vendor
+    from tradingagents.dataflows.vendors.yahoo import snapshot as market_data_validator
 
     set_config(get_korea_config())
     rows = pd.DataFrame({"Date": ["2026-01-05", "2026-01-06"], "Open": [70000, 999999],
@@ -230,7 +233,7 @@ def test_complete_korean_graph_with_codex_transport_mock(monkeypatch, tmp_path):
 def test_korean_today_uses_seoul_even_on_utc_host(monkeypatch):
     from datetime import datetime, timezone
 
-    from tradingagents.dataflows import utils
+    from tradingagents.dataflows import date_window as utils
 
     class Clock:
         @staticmethod
