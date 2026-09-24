@@ -1,3 +1,5 @@
+> Korean market port based on upstream v0.5.0: [한국어 설치·사용 안내](README.ko.md) · [Upstream maintenance](docs/KOREA_PORT.md).
+
 <p align="center">
   <img src="assets/TauricResearch.png" style="width: 60%; height: auto;">
 </p>

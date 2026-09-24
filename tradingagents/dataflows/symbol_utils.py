@@ -129,6 +129,15 @@ def normalize_symbol(raw: str) -> str:
         return raw
 
     s = raw.strip().upper()
+    # Korean resolution is opt-in: bare numeric symbols on other exchanges
+    # must retain upstream semantics under the default profile.
+    from .config import get_config
+
+    if get_config().get("market") == "KR":
+        from .korea_ticker import canonical_yahoo_symbol, get_stock_code
+
+        if get_stock_code(raw):
+            return canonical_yahoo_symbol(raw)
     # Broker CFD/qualifier suffixes Yahoo never uses.
     s = s.rstrip("+")
 

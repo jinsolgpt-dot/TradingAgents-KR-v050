@@ -1,0 +1,15 @@
+TradingAgents Korean market port
+
+Based on TauricResearch/TradingAgents, Apache License 2.0.
+Upstream tag: v0.5.0
+Tag object: 6aafdce38e0d1c1f211127f9ff8f969695020478
+Peeled commit: 2d17df8da1536c121e4d7395ac5a5dcec9e96d6f
+
+Korean data adapters, ticker mappings, DART disclosure classifier, and the
+Codex stdin/final-file transport are adapted from malda231125/TradingAgents-KR,
+commit ce0aa456419800c29325516f984fc55a9a8f14dd, Apache License 2.0.
+https://github.com/malda231125/TradingAgents-KR
+
+Modified for upstream v0.5.0 interfaces, pagination, point-in-time filtering,
+explicit vendor failures, safe credential handling, and LangChain structured
+output/tool-call support. This port does not imply endorsement by either source.

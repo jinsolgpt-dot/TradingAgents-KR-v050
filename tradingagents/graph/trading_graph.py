@@ -189,10 +189,15 @@ class TradingAgentsGraph:
             if thinking_level:
                 kwargs["thinking_level"] = thinking_level
 
-        elif provider == "openai":
+        elif provider in {"openai", "codex"}:
             reasoning_effort = self.config.get("openai_reasoning_effort")
             if reasoning_effort:
                 kwargs["reasoning_effort"] = reasoning_effort
+
+            if provider == "codex":
+                for key in ("codex_command", "codex_timeout"):
+                    if self.config.get(key) is not None:
+                        kwargs[key] = self.config[key]
 
         elif provider == "anthropic":
             effort = self.config.get("anthropic_effort")
@@ -403,6 +408,10 @@ class TradingAgentsGraph:
         path and the CLI call this so the resolved identity reaches the whole
         graph regardless of entry point.
         """
+        if self.config.get("market") == "KR":
+            from tradingagents.markets.korea import instrument_context
+
+            return instrument_context(ticker, curr_date)
         identity = resolve_instrument_identity(ticker)
         return build_instrument_context(ticker, asset_type, identity, curr_date)
 
@@ -415,7 +424,7 @@ class TradingAgentsGraph:
         (which have no stored resolution date) are unaffected.
         """
         td = str(trade_date)
-        return td if td < datetime.now().strftime("%Y-%m-%d") else None
+        return td if td < get_current_date() else None
 
     def _run_signature(self, asset_type: str, portfolio=None) -> str:
         """Graph-shape inputs that must invalidate a checkpoint if changed.

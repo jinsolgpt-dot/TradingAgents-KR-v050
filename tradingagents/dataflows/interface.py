@@ -1,5 +1,6 @@
 import logging
 
+from . import dart_api, ecos_api, kis_vendor, korean_news, naver_news
 from .alpha_vantage import (
     get_balance_sheet as get_alpha_vantage_balance_sheet,
     get_cashflow as get_alpha_vantage_cashflow,
@@ -83,6 +84,7 @@ TOOLS_CATEGORIES = {
 }
 
 VENDOR_LIST = [
+    "kis", "dart", "ecos", "naver", "korea",
     "yfinance",
     "sec_edgar",
     "fred",
@@ -151,6 +153,23 @@ VENDOR_METHODS = {
         "polymarket": get_polymarket_prediction_markets,
     },
 }
+
+# Additive market adapters: the upstream routing/fallback policy stays intact.
+for _method, _vendors in {
+    "get_stock_data": {"kis": kis_vendor.get_kis_stock_data},
+    "get_indicators": {"kis": kis_vendor.get_kis_indicators},
+    "get_fundamentals": {"kis": kis_vendor.get_kis_fundamentals, "dart": dart_api.get_fundamentals},
+    "get_balance_sheet": {"dart": dart_api.get_balance_sheet},
+    "get_income_statement": {"dart": dart_api.get_income_statement},
+    "get_cashflow": {"dart": dart_api.get_cashflow},
+    "get_news": {"naver": naver_news.get_news_naver, "dart": dart_api.get_dart_events,
+                 "korea": korean_news.get_news},
+    "get_global_news": {"naver": naver_news.get_global_news_naver,
+                        "korea": naver_news.get_global_news_naver},
+    "get_insider_transactions": {"korea": korean_news.get_insider_transactions},
+    "get_macro_indicators": {"ecos": ecos_api.get_macro_data},
+}.items():
+    VENDOR_METHODS[_method].update(_vendors)
 
 def get_category_for_method(method: str) -> str:
     """Get the category that contains the specified method."""

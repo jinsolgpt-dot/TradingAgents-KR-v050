@@ -34,7 +34,17 @@ def _verified_rows(symbol: str, curr_date: str) -> pd.DataFrame:
     """
     # As reported: this snapshot is quoted by the agents as exact prices, so a
     # gap-filled cell would put the previous session's number under this date.
-    data = load_ohlcv(symbol, curr_date, fill_gaps=False)
+    from tradingagents.dataflows.interface import get_vendor
+
+    primary = get_vendor("core_stock_apis", "get_stock_data").split(",")[0].strip()
+    if primary == "kis":
+        from tradingagents.dataflows.kis_vendor import get_kis_ohlcv_dataframe
+
+        start = (pd.Timestamp(curr_date) - pd.Timedelta(days=760)).strftime("%Y-%m-%d")
+        data = get_kis_ohlcv_dataframe(symbol, start, curr_date)
+        data.attrs["price_basis"] = "KIS raw/unadjusted KRW; corporate actions may cause discontinuities"
+    else:
+        data = load_ohlcv(symbol, curr_date, fill_gaps=False)
     if data is None or data.empty:
         raise ValueError(f"No OHLCV data available for {symbol}.")
 
@@ -77,6 +87,13 @@ def build_verified_market_snapshot(
     selected = tuple(indicators or DEFAULT_SNAPSHOT_INDICATORS)
     indicator_values: dict[str, str] = {}
     for name in selected:
+        if df.attrs.get("price_basis"):
+            warmup = {"close_10_ema": 10, "close_50_sma": 50, "close_200_sma": 200,
+                      "rsi": 14, "boll": 20, "boll_ub": 20, "boll_lb": 20,
+                      "macd": 35, "macds": 35, "macdh": 35, "atr": 14}
+            if len(df) < warmup.get(name, 1):
+                indicator_values[name] = "N/A (insufficient history)"
+                continue
         try:
             stock_df[name]  # triggers stockstats calculation
             indicator_values[name] = _fmt(stock_df.iloc[-1][name])
@@ -102,6 +119,9 @@ def build_verified_market_snapshot(
     ]
     for field in ("Open", "High", "Low", "Close", "Volume"):
         lines.append(f"| {field} | {_fmt(latest.get(field))} |")
+
+    if df.attrs.get("price_basis"):
+        lines.append("\nPrice basis: " + df.attrs["price_basis"])
 
     lines += ["", "### Verified technical indicators (latest row)", "",
               "| Indicator | Value |", "|---|---:|"]

@@ -171,3 +171,9 @@ DEFAULT_CONFIG = _apply_env_overrides({
         "":     "SPY",         # default for US-listed tickers (no suffix)
     },
 })
+
+# Explicit opt-in keeps upstream defaults and non-Korean runs unchanged.
+if os.environ.get("TRADINGAGENTS_MARKET", "").upper() == "KR":
+    from tradingagents.markets.korea import apply_korea_profile
+
+    DEFAULT_CONFIG = _apply_env_overrides(apply_korea_profile(DEFAULT_CONFIG))

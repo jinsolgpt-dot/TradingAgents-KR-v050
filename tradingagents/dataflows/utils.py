@@ -1,5 +1,5 @@
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 
@@ -40,6 +40,10 @@ def safe_ticker_component(value: str, *, max_len: int = 32) -> str:
 
 
 def get_current_date():
+    from tradingagents.dataflows.config import get_config
+
+    if get_config().get("market") == "KR":
+        return datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
     return date.today().strftime("%Y-%m-%d")
 
 

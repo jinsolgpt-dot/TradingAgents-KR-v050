@@ -21,7 +21,9 @@ STALE = su.OHLCV_CACHE_TTL_SECONDS + 60
 def _write(tmp_path, name="AAPL-YFin-data.csv", age_seconds=0.0, last_date="2026-07-17"):
     f = tmp_path / name
     pd.DataFrame({"Date": [last_date], "Close": [100.0]}).to_csv(f, index=False)
-    written = NOW.timestamp() - age_seconds
+    # The cache reads mtime in local time. pandas treats a naive timestamp as
+    # UTC here; datetime uses local time, matching the production conversion.
+    written = NOW.to_pydatetime().timestamp() - age_seconds
     os.utime(f, (written, written))
     return f
 
