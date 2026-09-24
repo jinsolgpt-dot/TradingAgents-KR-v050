@@ -231,3 +231,28 @@ def test_kis_invalid_ohlcv_rows_are_excluded(monkeypatch):
     monkeypatch.setattr(kis_vendor, "_request", request)
     frame = kis_vendor.get_kis_ohlcv_dataframe("005930", "2026-01-01", "2026-01-04")
     assert list(frame.Date) == ["2026-01-01"]
+
+
+def test_naver_uses_cloud_hub_endpoint_and_credentials(monkeypatch):
+    monkeypatch.setenv("NAVER_CLIENT_ID", "test-id")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "test-secret")
+    get = Mock(return_value=response({"items": []}))
+    monkeypatch.setattr(requests, "get", get)
+    assert naver_news._search_naver_news("삼성전자", display=2) == {"items": []}
+    get.assert_called_once_with(
+        "https://naverapihub.apigw.ntruss.com/search/v1/news",
+        headers={"X-NCP-APIGW-API-KEY-ID": "test-id", "X-NCP-APIGW-API-KEY": "test-secret"},
+        params={"query": "삼성전자", "display": 2, "start": 1, "sort": "date", "format": "json"},
+        timeout=20,
+    )
+
+
+@pytest.mark.parametrize("status", [401, 429])
+def test_naver_cloud_errors_do_not_expose_credentials(monkeypatch, status):
+    monkeypatch.setenv("NAVER_CLIENT_ID", "test-id")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "SECRET")
+    monkeypatch.setattr(requests, "get", Mock(return_value=response({}, status)))
+    expected = VendorRateLimitError if status == 429 else RuntimeError
+    with pytest.raises(expected) as caught:
+        naver_news._search_naver_news("test")
+    assert "SECRET" not in str(caught.value)

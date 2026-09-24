@@ -13,7 +13,7 @@ from .errors import VendorNotConfiguredError, VendorRateLimitError
 from .kis_auth import KST
 from .korea_ticker import get_instrument_profile
 
-NAVER_NEWS_API_URL = "https://openapi.naver.com/v1/search/news.json"
+NAVER_NEWS_API_URL = "https://naverapihub.apigw.ntruss.com/search/v1/news"
 
 def _search_naver_news(query, display=100, start=1, sort="date"):
     client_id, secret = os.getenv("NAVER_CLIENT_ID"), os.getenv("NAVER_CLIENT_SECRET")
@@ -21,8 +21,8 @@ def _search_naver_news(query, display=100, start=1, sort="date"):
         raise VendorNotConfiguredError("Set NAVER_CLIENT_ID and NAVER_CLIENT_SECRET")
     try:
         response = requests.get(NAVER_NEWS_API_URL,
-            headers={"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": secret},
-            params={"query": query, "display": display, "start": start, "sort": sort}, timeout=20)
+            headers={"X-NCP-APIGW-API-KEY-ID": client_id, "X-NCP-APIGW-API-KEY": secret},
+            params={"query": query, "display": display, "start": start, "sort": sort, "format": "json"}, timeout=20)
         if response.status_code == 429:
             raise VendorRateLimitError("Naver news rate limit")
         response.raise_for_status()

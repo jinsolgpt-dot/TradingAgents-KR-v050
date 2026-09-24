@@ -97,7 +97,7 @@ KIS를 primary로 선택한 검증 snapshot은 KIS 오류를 드러내며 Yahoo�
 - [KIS 공식 API 예제](https://github.com/koreainvestment/open-trading-api)
 - [OpenDART 개발가이드](https://opendart.fss.or.kr/guide/main.do)
 - [ECOS](https://ecos.bok.or.kr/api/)
-- [Naver 뉴스 검색](https://developers.naver.com/docs/serviceapi/search/news/news.md)
+- [Naver 뉴스 검색](https://api.ncloud-docs.com/docs/naver-api-hub-search-news)
 
 구현에 `karpathy-guidelines`와 `OpenAI Docs`를 적용했습니다. 원본 Apache-2.0 LICENSE를 유지하고
 KR 이식 파일에 출처를 명시했습니다. 변경 사유는 루트 NOTICE에도 기록했습니다.

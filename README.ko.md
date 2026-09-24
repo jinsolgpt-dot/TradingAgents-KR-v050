@@ -121,7 +121,7 @@ graph.save_reports(state, symbol)
 ## 키 발급 및 문서
 
 [KIS](https://apiportal.koreainvestment.com/), [OpenDART](https://opendart.fss.or.kr/),
-[ECOS](https://ecos.bok.or.kr/api/), [Naver](https://developers.naver.com/docs/serviceapi/search/news/news.md),
+[ECOS](https://ecos.bok.or.kr/api/), [Naver](https://api.ncloud-docs.com/docs/naver-api-hub-search-news),
 [Codex 비대화형 실행](https://learn.chatgpt.com/docs/non-interactive-mode).
 
 Apache-2.0. 원본 LICENSE를 유지하며 이식 출처와 수정사항은 [NOTICE](NOTICE)에 기록했습니다.
