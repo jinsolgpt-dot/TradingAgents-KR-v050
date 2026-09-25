@@ -1,7 +1,7 @@
 """Compose Naver articles and DART filings without changing upstream news tools."""
 
 from . import dart_api, naver_news
-from .errors import VendorError
+from .errors import VendorError, VendorUnavailableError
 
 
 def get_news(ticker: str, start_date: str, end_date: str) -> str:
@@ -13,7 +13,7 @@ def get_news(ticker: str, start_date: str, end_date: str) -> str:
         except (VendorError, RuntimeError):
             failures.append(source)
     if not sections:
-        raise VendorError("Korean news sources unavailable; check Naver/DART configuration.")
+        raise VendorUnavailableError("Korean news sources unavailable; check Naver/DART configuration.")
     if failures:
         sections.append("DATA_UNAVAILABLE: " + ", ".join(failures))
     return "\n\n".join(sections)

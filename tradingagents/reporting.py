@@ -122,6 +122,17 @@ def write_report_tree(final_state: dict, ticker: str, save_path, *, output_langu
             sections.append(f"## {label('V. Portfolio Manager Decision')}\n\n### {label('Portfolio Manager')}\n{risk['judge_decision']}")
 
     # Write consolidated report
-    header = f"# {label('Trading Analysis Report')}: {ticker}\n\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    generated = datetime.now().astimezone().isoformat(timespec="seconds")
+    header = f"# {label('Trading Analysis Report')}: {ticker}\n\nGenerated: {generated}\n\n"
+    if final_state.get("trade_date"):
+        header += f"Analysis date: {final_state['trade_date']}\n\n"
+    if str(output_language).lower() in {"korean", "ko", "한국어"}:
+        header += (
+            "> 생성 시각은 파일 작성 시각이며, 분석 기준일·가격 관측일과 다를 수 있습니다.\n"
+            "> 역할별 자료 범위: 시장 분석은 가격·기술지표, 재무 분석은 기업정보·재무제표, "
+            "뉴스 분석은 기사·공시·거시자료, 심리 분석은 확보된 뉴스·소셜 자료를 다룹니다. "
+            "각 절의 자료 누락 설명은 그 역할의 범위이며 전체 수집 실패를 뜻하지 않습니다. "
+            "실제 사용 여부와 제약은 각 절의 근거를 확인하세요.\n\n"
+        )
     (save_path / "complete_report.md").write_text(header + "\n\n".join(sections), encoding="utf-8")
     return save_path / "complete_report.md"

@@ -1,5 +1,7 @@
 # Adapted from TradingAgents-KR ce0aa456419800c29325516f984fc55a9a8f14dd (Apache-2.0).
 """Read-only Korean stock data. Daily bars are raw (unadjusted) KRW prices."""
+import threading
+import time
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -15,11 +17,34 @@ from .vendors.yahoo.ohlcv import _assert_ohlcv_not_stale
 class KISVendorError(RuntimeError):
     pass
 
+_request_lock = threading.Lock()
+_last_request = 0.0
+
+
+def _paced_get(url, **kwargs):
+    """Bound this process's concurrent indicator requests and rate-limit retries."""
+    global _last_request
+    for attempt in range(3):
+        with _request_lock:
+            time.sleep(max(0, 0.15 - (time.monotonic() - _last_request)))
+            _last_request = time.monotonic()
+            response = requests.get(url, **kwargs)
+        try:
+            limited = response.status_code == 429 or response.json().get("msg_cd") == "EGW00201"
+        except ValueError:
+            limited = response.status_code == 429
+        if not limited:
+            return response
+        if attempt < 2:
+            time.sleep(attempt + 1)
+    raise VendorRateLimitError("KIS rate limit after bounded retries")
+
+
 def _request(path, tr_id, params=None):
     auth = get_kis_auth_manager()
     try:
         for refresh in (False, True):
-            response = requests.get(auth.base_url + path,
+            response = _paced_get(auth.base_url + path,
                 headers=auth.build_headers(tr_id=tr_id, force_refresh=refresh),
                 params=params or {}, timeout=20)
             if response.status_code != 401 or refresh:
@@ -121,4 +146,9 @@ def get_kis_fundamentals(ticker, curr_date):
         ("/uapi/domestic-stock/v1/finance/financial-ratio", "FHKST66430300", {"FID_DIV_CLS_CODE": "1", "fid_cond_mrkt_div_code": "J", "fid_input_iscd": symbol})]:
         data = _request(path, tr_id, params).get("output") or []
         sections.append(pd.DataFrame([data] if isinstance(data, dict) else data).to_csv(index=False))
-    return "KIS current company information and financial ratios; retrieved " + curr_date + "\n" + "\n".join(sections)
+    return ("KIS current company information and financial ratios; retrieved " + curr_date + "\n"
+            "Company-master price fields are not verified daily closes or live execution quotes. "
+            "Do not compute market cap, upside or order prices from these fields. Use the verified market snapshot. "
+            "Financial-ratio EPS/PER may use a different reporting period or basis from DART; "
+            "do not combine or compare them until the accounting scope and period are verified.\n"
+            + "\n".join(sections))

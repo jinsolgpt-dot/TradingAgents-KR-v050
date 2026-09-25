@@ -61,11 +61,20 @@ def create_sentiment_analyst(llm):
         news_block = get_news.func(ticker, start_date, end_date)
         # Pass the analysis window so a historical run trims social posts to it
         # instead of leaking today's chatter into a backtest (#1220).
-        screen = jev_screen(ticker)
-        stocktwits_block = fetch_stocktwits_messages(
-            ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
-        )
-        reddit_block = fetch_reddit_posts(ticker, start_date=start_date, end_date=end_date, screen=screen)
+        from tradingagents.dataflows.config import get_config
+
+        if get_config().get("market") == "KR":
+            stocktwits_block = reddit_block = (
+                "DATA_UNAVAILABLE: No validated Korean retail-social source is configured. "
+                "This is unsupported coverage, not neutral sentiment. Use news only as a "
+                "sentiment proxy; do not infer the mood of Korean investors or institutions."
+            )
+        else:
+            screen = jev_screen(ticker)
+            stocktwits_block = fetch_stocktwits_messages(
+                ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
+            )
+            reddit_block = fetch_reddit_posts(ticker, start_date=start_date, end_date=end_date, screen=screen)
 
         system_message = _build_system_message(
             ticker=ticker,
@@ -132,7 +141,7 @@ def _build_system_message(
 
 ## Data sources (pre-fetched, in this prompt)
 
-### News headlines — Yahoo Finance, past 7 days
+### News headlines — configured news providers, past 7 days (see source labels below)
 Institutional framing. Fact-driven, slower-moving signal.
 
 <start_of_news>

@@ -7,6 +7,7 @@ TauricResearch/TradingAgents **v0.5.1 정식 태그**에 한국시장 데이터�
 - [원본 v0.5.1](https://github.com/TauricResearch/TradingAgents/tree/v0.5.1)
 - [한국 기능 참고 프로젝트](https://github.com/malda231125/TradingAgents-KR/blob/ce0aa456419800c29325516f984fc55a9a8f14dd/README.ko.md)
 - [upstream 유지보수·검증 기록](docs/KOREA_PORT.md)
+- [재무 기간·뉴스 장애·보고서 오류 수정 기록](docs/REPORT_AUDIT_RP8K4M2D7A.md)
 - 원본 영어 설명은 [README.md](README.md)에 유지했습니다.
 
 원본 전체 기능과 한국판의 차이는 [원본 기능 안내](docs/UPSTREAM_FEATURES.ko.md)를 참고하세요.

@@ -24,6 +24,35 @@ from tradingagents.markets.korea import get_korea_config, normalize_portfolio
 from tradingagents.portfolio import PortfolioContext, Position
 
 
+def test_korean_sentiment_uses_news_proxy_without_unvalidated_us_social(monkeypatch):
+    from tradingagents.agents.analysts import sentiment_analyst
+    from tradingagents.dataflows.config import run_config
+
+    prompts = []
+    monkeypatch.setattr(sentiment_analyst.get_news, "func", lambda *a: "Naver and DART news evidence")
+    def unsupported(*args, **kwargs):
+        raise AssertionError("US social should not be fetched for the KR profile")
+    monkeypatch.setattr(sentiment_analyst, "fetch_stocktwits_messages", unsupported)
+    monkeypatch.setattr(sentiment_analyst, "fetch_reddit_posts", unsupported)
+
+    class LLM:
+        def with_structured_output(self, *args, **kwargs):
+            raise NotImplementedError
+
+        def invoke(self, messages):
+            prompts.extend(messages)
+            return AIMessage(content="news-based proxy")
+
+    with run_config(get_korea_config()):
+        node = sentiment_analyst.create_sentiment_analyst(LLM())
+        result = node({"company_of_interest": "259960.KS", "trade_date": "2026-09-25", "messages": []})
+    text = "\n".join(str(m.content) for m in prompts)
+    assert "Yahoo Finance" not in text
+    assert "Naver and DART news evidence" in text
+    assert "unsupported coverage, not neutral sentiment" in text
+    assert result["sentiment_report"] == "news-based proxy"
+
+
 class ToolState(TypedDict):
     messages: list
     trade_date: str

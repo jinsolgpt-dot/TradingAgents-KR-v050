@@ -203,8 +203,9 @@ def get_portfolio_context_from_state(state: Mapping[str, Any]) -> str:
         return context
     return (
         "Portfolio context: not provided. You do not know the caller's current "
-        "holdings or cash, so do not assume a flat book; give direction and "
-        "sizing guidance in terms the caller can apply to their own position."
+        "holdings or cash, so do not assume a flat book. Give conditional direction and "
+        "qualitative risk guidance only. Do not invent share quantities, numeric portfolio "
+        "weights, standard allocations or loss budgets."
     )
 
 

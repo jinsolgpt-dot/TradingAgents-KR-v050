@@ -73,3 +73,13 @@ def test_graph_report_uses_its_own_language(tmp_path):
     graph = SimpleNamespace(config={"output_language": "Korean"})
     out = TradingAgentsGraph.save_reports(graph, _state(), "259960.KS", save_path=tmp_path)
     assert "Market Analyst (시장·기술 분석가)" in out.read_text(encoding="utf-8")
+
+
+def test_report_separates_analysis_date_generation_and_role_coverage(tmp_path):
+    state = _state()
+    state["trade_date"] = "2026-09-25"
+    out = write_report_tree(state, "259960.KS", tmp_path, output_language="Korean")
+    report = out.read_text(encoding="utf-8")
+    assert "Analysis date: 2026-09-25" in report
+    assert "전체 수집 실패를 뜻하지 않습니다" in report
+    assert "MKT" in report

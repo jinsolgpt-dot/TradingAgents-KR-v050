@@ -43,6 +43,8 @@ def _prompt(messages: list[BaseMessage]) -> str:
         "conversation below. Use only its supplied evidence and application tool results. "
         "Do not inspect local files, run commands, or use your own tools or web search. "
         "Application tool requests are returned as JSON for the host to execute.\n"
+        "Follow only the supplied application conversation for report format. Do not add invented "
+        "request identifiers or claim sources that are not in the supplied tool results.\n"
         + json.dumps(transcript, ensure_ascii=False)
     )
 

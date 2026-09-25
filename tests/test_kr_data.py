@@ -256,3 +256,26 @@ def test_naver_cloud_errors_do_not_expose_credentials(monkeypatch, status):
     with pytest.raises(expected) as caught:
         naver_news._search_naver_news("test")
     assert "SECRET" not in str(caught.value)
+
+
+def test_kis_rate_limit_500_retries_are_bounded(monkeypatch):
+    monkeypatch.setattr(kis_vendor.time, "sleep", lambda _: None)
+    get = Mock(side_effect=[response({"msg_cd": "EGW00201"}, 500), response({"rt_cd": "0"})])
+    monkeypatch.setattr(requests, "get", get)
+    assert kis_vendor._paced_get("https://example.test").status_code == 200
+    assert get.call_count == 2
+    get.side_effect = None
+    get.return_value = response({"msg_cd": "EGW00201"}, 500)
+    get.reset_mock()
+    with pytest.raises(VendorRateLimitError):
+        kis_vendor._paced_get("https://example.test")
+    assert get.call_count == 3
+
+
+def test_ecos_live_aliases_use_active_series(monkeypatch):
+    get = Mock(return_value="values")
+    monkeypatch.setattr(ecos_api, "get_ecos_stat", get)
+    ecos_api.get_macro_data("usd_krw", "2026-09-25")
+    assert get.call_args.args[:3] == ("731Y003", "0000003", "D")
+    ecos_api.get_macro_data("m2", "2026-09-25")
+    assert get.call_args.args[:3] == ("161Y005", "BBHS00", "M")

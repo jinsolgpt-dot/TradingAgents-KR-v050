@@ -3,13 +3,14 @@
 import html
 import os
 import re
+import time
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 
 import requests
 
 from .config import get_config
-from .errors import VendorNotConfiguredError, VendorRateLimitError
+from .errors import VendorNotConfiguredError, VendorRateLimitError, VendorUnavailableError
 from .kis_auth import KST
 from .korea_ticker import get_instrument_profile
 
@@ -19,16 +20,36 @@ def _search_naver_news(query, display=100, start=1, sort="date"):
     client_id, secret = os.getenv("NAVER_CLIENT_ID"), os.getenv("NAVER_CLIENT_SECRET")
     if not client_id or not secret:
         raise VendorNotConfiguredError("Set NAVER_CLIENT_ID and NAVER_CLIENT_SECRET")
-    try:
-        response = requests.get(NAVER_NEWS_API_URL,
-            headers={"X-NCP-APIGW-API-KEY-ID": client_id, "X-NCP-APIGW-API-KEY": secret},
-            params={"query": query, "display": display, "start": start, "sort": sort, "format": "json"}, timeout=20)
-        if response.status_code == 429:
-            raise VendorRateLimitError("Naver news rate limit")
-        response.raise_for_status()
-        return response.json()
-    except (requests.RequestException, ValueError):
-        raise RuntimeError("Naver news request failed") from None
+    for attempt in range(3):
+        try:
+            response = requests.get(NAVER_NEWS_API_URL,
+                headers={"X-NCP-APIGW-API-KEY-ID": client_id, "X-NCP-APIGW-API-KEY": secret},
+                params={"query": query, "display": display, "start": start, "sort": sort, "format": "json"}, timeout=20)
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            if attempt < 2:
+                time.sleep(attempt + 1)
+                continue
+            raise VendorUnavailableError(f"Naver news transport {type(exc).__name__} after 3 attempts") from None
+        except requests.RequestException:
+            raise VendorUnavailableError("Naver news transport request failed") from None
+        status = response.status_code
+        if status == 429 or status in (500, 502, 503, 504):
+            if attempt < 2:
+                time.sleep(attempt + 1)
+                continue
+            if status == 429:
+                raise VendorRateLimitError("Naver news HTTP 429 after 3 attempts")
+        if status >= 400:
+            raise VendorUnavailableError(f"Naver news HTTP {status}")
+        try:
+            data = response.json()
+        except ValueError:
+            raise VendorUnavailableError("Naver news invalid response JSON") from None
+        if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+            raise VendorUnavailableError("Naver news invalid response schema")
+        if any(not isinstance(row, dict) for row in data["items"]):
+            raise VendorUnavailableError("Naver news invalid response items")
+        return data
 
 def _clean_html(text):
     return html.unescape(re.sub(r"<[^>]+>", "", text)).strip()

@@ -4,6 +4,7 @@
 Financial facts are accepted only when their filing receipt date is known and
 no later than curr_date. Later amendments are excluded, never backfilled.
 """
+import json
 import os
 import re
 from datetime import datetime
@@ -11,6 +12,7 @@ from datetime import datetime
 import requests
 
 from .dart_classifier import format_classified_disclosures
+from .dart_document import number, verified_cashflow_profit
 from .errors import VendorNotConfiguredError, VendorRateLimitError
 from .kis_auth import KST
 from .korea_ticker import get_corp_code
@@ -93,6 +95,9 @@ def _financial_rows(corp_code, year, report_code, curr_date):
             continue
         safe = []
         for row in rows:
+            if any(row.get(k) not in (None, "", expected) for k, expected in
+                   (("corp_code", corp_code), ("bsns_year", str(year)), ("reprt_code", report_code))):
+                continue
             receipt = str(row.get("rcept_no", ""))
             if not re.fullmatch(r"\d{14}", receipt):
                 continue
@@ -107,16 +112,53 @@ def _financial_rows(corp_code, year, report_code, curr_date):
     return [], ""
 
 def _format_financials(rows, corp_code, year, report_code, division, curr_date, statement=None):
+    all_rows = rows
     if statement:
         kinds = {"IS", "CIS"} if statement == "IS" else {statement}
         rows = [row for row in rows if row.get("sj_div") in kinds]
     if not rows:
         return "DATA_UNAVAILABLE: No DART financial statements with verified filing dates on or before " + curr_date
+    interim = report_code != "11011"
     lines = [f"DART {division} financials: {corp_code}, {year}/{report_code}, as of {curr_date}",
-             "Amounts are reported in each row's currency; quarterly reports may contain cumulative cash flows."]
+             "Income current_3m and current_ytd are different periods. Never annualize a quarter as YTD. "
+             "BS is a point-in-time balance; CF is cumulative, not a standalone quarter. "
+             "Compare only identical periods, currency and CFS/OFS scope. null means unavailable, not zero. "
+             "EPS is currency per share. Preserve account IDs; do not sum totals and their components twice. "
+             "Unresolved conflicts are unusable for arithmetic, not evidence of corporate misstatement."]
     for row in rows:
-        lines.append(f"[{row.get('sj_div', '')}] {row.get('account_nm', '')}: {row.get('thstrm_amount', '')} "
-                     f"{row.get('currency', 'KRW')} (prior: {row.get('frmtrm_amount', '')}; filing {row['rcept_no']}")
+        kind = row.get("sj_div", "")
+        current = number(row.get("thstrm_amount"))
+        if kind in {"IS", "CIS"} and interim:
+            amounts = {"current_3m": current, "current_ytd": number(row.get("thstrm_add_amount")),
+                       "prior_year_3m": number(row.get("frmtrm_q_amount")),
+                       "prior_year_ytd": number(row.get("frmtrm_add_amount"))}
+        elif kind == "BS":
+            amounts = {"current_balance": current, "prior_balance": number(row.get("frmtrm_amount"))}
+        elif interim:
+            amounts = {"current_ytd": current, "prior_year_ytd": number(row.get("frmtrm_q_amount"))}
+        else:
+            amounts = {"current_year": current, "prior_year": number(row.get("frmtrm_amount"))}
+        validation = "api_reported"
+        if interim and kind == "CF" and row.get("account_id") == "ifrs-full_ProfitLoss":
+            income = {number(r.get("thstrm_add_amount")) for r in all_rows
+                      if r.get("sj_div") in {"IS", "CIS"} and r.get("account_id") == row["account_id"]
+                      and r.get("rcept_no") == row["rcept_no"]}
+            income.discard(None)
+            if len(income) == 1 and current not in income:
+                verified = verified_cashflow_profit(row, all_rows)
+                if verified and verified["current"] not in income:
+                    verified = None
+                amounts.update(api_current_raw=current, api_prior_raw=number(row.get("frmtrm_q_amount")))
+                amounts.update(current_ytd=verified["current"] if verified else None,
+                               prior_year_ytd=verified["prior"] if verified else None)
+                validation = "document_verified" if verified else "unresolved_period_conflict"
+        fact = {"statement": kind, "account_id": row.get("account_id"), "account": row.get("account_nm"),
+                "account_detail": row.get("account_detail"), "currency": row.get("currency"),
+                "current_period": row.get("thstrm_nm"),
+                "prior_period": row.get("frmtrm_q_nm") if interim and kind != "BS" else row.get("frmtrm_nm"),
+                "amounts": amounts, "validation": validation,
+                "source": f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={row['rcept_no']}"}
+        lines.append(json.dumps(fact, ensure_ascii=False))
     return "\n".join(lines)
 
 def get_dart_financial_statements(corp_code, year, report_code="11013", curr_date=None):

@@ -16,10 +16,10 @@ from .kis_auth import KST
 ECOS_BASE_URL = "https://ecos.bok.or.kr/api"
 MACRO_STAT_CODES = {
     "base_rate": {"stat_code": "722Y001", "item_code": "0101000", "cycle": "M", "label": "한국은행 기준금리"},
-    "usd_krw": {"stat_code": "731Y003", "item_code": "0000001", "cycle": "D", "label": "원/달러 환율"},
+    "usd_krw": {"stat_code": "731Y003", "item_code": "0000003", "cycle": "D", "label": "원/달러 환율 (15:30 종가)"},
     "kospi": {"stat_code": "802Y001", "item_code": "0001000", "cycle": "D", "label": "KOSPI"},
     "cpi": {"stat_code": "901Y009", "item_code": "0", "cycle": "M", "label": "소비자물가지수"},
-    "m2": {"stat_code": "101Y003", "item_code": "BBGA00", "cycle": "M", "label": "M2 광의통화"},
+    "m2": {"stat_code": "161Y005", "item_code": "BBHS00", "cycle": "M", "label": "M2 광의통화 (평잔, 계절조정)"},
 }
 
 def _period(value, cycle):
@@ -92,7 +92,9 @@ def get_ecos_stat(stat_code, item_code, cycle, start_date, end_date, count=1000)
     if not rows:
         return "DATA_UNAVAILABLE: No ECOS observations in the requested period."
     rows = sorted({str(row["TIME"]): row for row in rows}.values(), key=lambda row: row["TIME"])[-count:]
-    return f"ECOS current vintage, retrieved {end_date}; observation periods are not release dates.\n" + "\n".join(
+    return (f"ECOS current vintage, retrieved {end_date}; series {stat_code}/{item_code}, cycle {cycle}. "
+            "These published values are usable for analysis on the retrieval date, but not as historical vintages. "
+            "Observation periods are not release dates; the latest observation need not describe today's level.\n") + "\n".join(
         f"{row['TIME']}: {row.get('DATA_VALUE', '')} {row.get('UNIT_NAME', '')}" for row in rows)
 
 def get_macro_data(indicator, curr_date, look_back_days=None):
